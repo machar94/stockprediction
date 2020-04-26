@@ -18,10 +18,10 @@ def plotSignal(func):
 
         if plot:
             plt.rcParams['font.size'] = 16
-            fig = plt.figure(figsize=(8, 4))
+            fig = plt.figure(figsize=(16, 4))
             ax = fig.add_axes([0, 0, 1, 1])
             plt.plot(prices.index, signal['data'])
-            ax.set_title(func.__name__)
+            ax.set_title(func.__name__.upper())
             ax.set_xlabel('Dates')
             fig.autofmt_xdate(rotation=30)
             ax.grid()

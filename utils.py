@@ -7,7 +7,21 @@ from vaderSentiment.vaderSentiment import SentimentIntensityAnalyzer
 
 # Other Helper Functions
 
-def resetSignals(indicators):
+def initSignals(signals, params):
+
+    for name, signal in signals.items():
+        
+        if params[name]['params'] is None:
+            continue
+
+        # Fill in parameters
+        for k, v in params[name]['params'].items():
+            signal['params'][k] = v
+
+        signal['file'] = params[name]['file']
+
+
+def resetSignals(indicators, params):
     """
     Creates a signals structure given list of functions
     """
@@ -19,6 +33,8 @@ def resetSignals(indicators):
         signals[func.__name__]['params'] = {}
         signals[func.__name__]['data'] = None
         signals[func.__name__]['file'] = None
+
+    initSignals(signals, params)
 
     return signals
 
@@ -234,7 +250,7 @@ def getMultiStockData(df_prices, technical_indicators, predict):
     return multiStockFeatures, multiStockLabels
 
 
-def getBaselineAcc(preds):
-    baseline = np.ones_like(preds)
-    n = np.equal(preds, baseline).sum()
-    return 100 * n / baseline.size
+def classify(y_true, threshold):
+    y_true[y_true > threshold] = 1
+    y_true[y_true < threshold] = 0
+    return y_true

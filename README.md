@@ -1,1 +1,1 @@
-# stockprediction
+# Stock Trend Prediction using LSTMs

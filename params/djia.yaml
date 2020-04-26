@@ -1,0 +1,60 @@
+# project parameters
+
+sma:
+    params:
+        window: 14
+    file:
+    
+
+wma:
+    params:
+        window: 14
+    file:
+
+mom:
+    params:
+        window: 14
+    file:
+
+macd:
+    params:
+        fastperiod: 12
+        slowperiod: 26
+        signalperiod: 9
+    file:
+
+rsi:
+    params:
+        window: 14
+    file:
+
+stoch:
+    params:
+    file:
+
+adosc:
+    params:
+    file:
+
+willr:
+    params:
+        window: 14
+    file:
+
+arima_sma:
+    params:
+        sma_window: 3
+        arima_window: 30
+    file: 'features/djia_arima_sma.npy'
+
+arima_wma:
+    params:
+        wma_window: 3
+        arima_window: 30
+    file: 'features/djia_arima_wma.npy'
+
+arima_ema:
+    params:
+        ema_window: 3
+        arima_window: 30
+    file: 'features/djia_arima_ema.npy'

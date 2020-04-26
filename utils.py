@@ -182,7 +182,7 @@ def create_sequences(features, labels, seq_length):
 
     for i in range(T):
         xs[i] = np.copy(features[i:(i + seq_length), :])
-        ys[i] = np.copy(labels[i])
+        ys[i] = np.copy(labels[i+seq_length-1])
 
     return xs, ys
 

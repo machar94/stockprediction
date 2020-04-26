@@ -3,6 +3,11 @@ import warnings
 import numpy as np
 import pandas as pd
 
+from solver import Solver
+from forecaster import Forecaster
+from sklearn.metrics import recall_score
+from sklearn.metrics import precision_score
+from sklearn.metrics import accuracy_score
 from vaderSentiment.vaderSentiment import SentimentIntensityAnalyzer
 
 # Other Helper Functions
@@ -39,7 +44,7 @@ def resetSignals(indicators, params):
     return signals
 
 
-def getHeadlineScores(headlines):
+def headlineScores(headlines):
     analyser = SentimentIntensityAnalyzer()
     getscore = lambda x: analyser.polarity_scores(x)['compound']
     sentiment = headlines.applymap(getscore)
@@ -55,7 +60,7 @@ def extractFeatures(prices, headlines, signals):
 
     sentiment = None
     if headlines is not None:
-        sentiment = getHeadlineScores(headlines)
+        sentiment = headlineScores(headlines)
 
     return signals, sentiment
 
@@ -115,7 +120,7 @@ def writeToFile(labels, dates, sentiment, signals, predict, dropRows, name):
     df.to_csv(fn)
 
 
-def getCleanData(prices,
+def cleanData(prices,
                  signals,
                  predict=1,
                  headlines=None,
@@ -182,75 +187,45 @@ def create_sequences(features, labels, seq_length):
     return xs, ys
 
 
-def getMultiStockData(df_prices, technical_indicators, predict):
-
-    tickers = df_prices['Close'].columns.to_list()
-
-    multiStockFeatures = {}
-    multiStockLabels = {}
-
-    for tick in tickers:
-        print('Creating features for ' + tick)
-        criteria = df_prices.columns.get_level_values(level=1).isin([tick])
-        prices = df_prices[df_prices.columns[criteria]]
-        
-        # Magic 1 because yahoo finance has the following column organization
-        # Level 0: High, Open, Low, Close, Adj Close etc. (not sure of order)
-        # Level 1: <Stock Name 1>, <Stock Name 2> etc.
-        # We seek to ignore the stock name and just have the level 0 cols
-        prices = prices.droplevel(1, axis=1)
-
-        prices = prices.filter(['High', 'Low', 'Volume', 'Adj Close'],
-                                  axis=1)
-
-        names = {
-            'High': 'high',
-            'Low': 'low',
-            'Volume': 'volume',
-            'Adj Close': 'close'
-        }
-
-        prices.rename(columns=names, inplace=True)
-
-        # Prepare signals dictionary layout for uploading features
-        signals = resetSignals(technical_indicators)
-
-        # Set all signal parameters
-        signals['sma']['params']['window'] = 14
-        signals['wma']['params']['window'] = 14
-        signals['mom']['params']['window'] = 14
-        signals['macd']['params']['fastperiod'] = 12
-        signals['macd']['params']['slowperiod'] = 26
-        signals['macd']['params']['signalperiod'] = 9
-        signals['rsi']['params']['window'] = 14
-        signals['willr']['params']['window'] = 14
-
-        #         signals['arima_sma']['params']['sma_window'] = 3
-        #         signals['arima_sma']['params']['arima_window'] = 30
-        #         signals['arima_sma']['file'] = 'features/djia_arima_sma.npy'
-
-        #         signals['arima_wma']['params']['wma_window'] = 3
-        #         signals['arima_wma']['params']['arima_window'] = 30
-        #         signals['arima_wma']['file'] = 'features/djia_arima_wma.npy'
-
-        #         signals['arima_ema']['params']['ema_window'] = 3
-        #         signals['arima_ema']['params']['arima_window'] = 30
-        #         signals['arima_ema']['file'] = 'features/djia_arima_ema.npy'
-
-        features, labels = getCleanData(prices,
-                                        signals,
-                                        predict=predict,
-                                        headlines=None,
-                                        name=tick,
-                                        verbose=False)
-
-        multiStockFeatures[tick] = features
-        multiStockLabels[tick] = labels
-
-    return multiStockFeatures, multiStockLabels
-
-
 def classify(y_true, threshold):
     y_true[y_true > threshold] = 1
     y_true[y_true < threshold] = 0
     return y_true
+
+
+def calcMetrics(modelparams, solverparams, dataloaders, dataset_sizes, iters,
+                threshold):
+    """
+    Calculate metrics averaged over iters
+    """
+
+    precision = np.empty(shape=(iters, ))
+    accuracy = np.empty(shape=(iters, ))
+    recall = np.empty(shape=(iters, ))
+
+    for i in range(iters):
+        print(f'Model Evaluation #{i+1}')
+
+        # Train
+        model = Forecaster(n_features=modelparams['n_features'],
+                           n_hidden=modelparams['n_hidden'],
+                           n_layers=modelparams['n_layers'],
+                           dropout=modelparams['dropout'])
+        
+        solver = Solver(model, 
+                        num_epochs=solverparams['num_epochs'], 
+                        verbose=solverparams['verbose'], 
+                        plot=solverparams['plot'])
+        
+        model = solver.train(dataloaders, dataset_sizes)
+
+        # Evaluate
+        y_test, y_pred = solver.eval(model, dataloaders['val'])
+
+        # Metrics
+        ml_classifications = classify(y_pred, threshold)
+        accuracy[i] = accuracy_score(y_test, ml_classifications)
+        precision[i] = precision_score(y_test, ml_classifications)
+        recall[i] = recall_score(y_test, ml_classifications)
+
+    return np.mean(accuracy), np.mean(precision), np.mean(recall)

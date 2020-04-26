@@ -40,21 +40,3 @@ willr:
     params:
         window: 14
     file:
-
-arima_sma:
-    params:
-        sma_window: 3
-        arima_window: 30
-    file: 'features/djia_arima_sma.npy'
-
-arima_wma:
-    params:
-        wma_window: 3
-        arima_window: 30
-    file: 'features/djia_arima_wma.npy'
-
-arima_ema:
-    params:
-        ema_window: 3
-        arima_window: 30
-    file: 'features/djia_arima_ema.npy'

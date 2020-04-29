@@ -164,7 +164,7 @@ def cleanData(prices,
     features = features[~rowsbool, :]
     labels = labels[~rowsbool]
 
-    return features, labels
+    return features, labels, ~rowsbool
 
 
 def create_sequences(features, labels, seq_length):

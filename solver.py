@@ -76,12 +76,31 @@ class Solver():
     def setModel(self, model):
         self.model = model
 
+    def _early_stop(self, epoch, trend=3):
+        if epoch < trend:
+            return False
+
+        cond1 = True
+        for i in range(trend):
+            val1 = self.stats['val']['loss'][epoch-i]
+            val2 = self.stats['val']['loss'][epoch-i-1]
+            cond1 = cond1 and (val1 > val2)
+
+        # Future loss should not be larger than initial loss
+        cond2 = self.stats['val']['loss'][epoch] > self.stats['val']['loss'][0] * 1.05
+        
+        if cond1 or cond2:
+            print(f'Early stop activated @ epoch: {epoch}')
+            return True
+    
+        return False
+
     def train(self, dataloaders, dataset_sizes):
         self._reset()
 
         loss_fn = nn.BCELoss()
 
-        optimizer = torch.optim.Adam(self.model.parameters(), lr=1e-3)
+        optimizer = torch.optim.Adam(self.model.parameters(), lr=1e-3, weight_decay=1e-3)
 
         # Prepare model for running
         self.model.double()
@@ -136,6 +155,10 @@ class Solver():
             # Realtime results plotting
             if self.mode['plot']:
                 self._plotStats(epoch)
+
+            # Stop training if validaiton loss starts increasing
+            if self._early_stop(epoch):
+                break
 
         if self.mode['verbose']:
             time_elapsed = time.time() - since

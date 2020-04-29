@@ -2,7 +2,7 @@ import torch
 from torch import nn
 
 class Forecaster(nn.Module):
-    def __init__(self, n_features, n_hidden, n_layers=2, dropout=0.5):
+    def __init__(self, n_features, n_hidden, n_layers=2, dropout=0.0):
         super(Forecaster, self).__init__()
 
         self.n_hidden = n_hidden

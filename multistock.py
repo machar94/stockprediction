@@ -12,6 +12,7 @@ def cleanData(df_prices, technical_indicators, params, predict):
 
     multiStockFeatures = {}
     multiStockLabels = {}
+    prev_selectrows = None
 
     for tick in tickers:
         print('Creating features for ' + tick)
@@ -39,17 +40,21 @@ def cleanData(df_prices, technical_indicators, params, predict):
         # Prepare signals dictionary layout for uploading features
         signals = utils.resetSignals(technical_indicators, params)
 
-        features, labels = utils.cleanData(prices,
-                                           signals,
-                                           predict=predict,
-                                           headlines=None,
-                                           name=tick,
-                                           verbose=False)
+        features, labels, selectrows = utils.cleanData(
+            prices, signals, predict=predict, headlines=None,
+            name=tick, verbose=False)
+
+        if prev_selectrows is not None:
+            assert np.array_equal(selectrows, prev_selectrows), \
+            'Rows selected not equal for all stocks'
+            prev_selectrows = selectrows
+
+
 
         multiStockFeatures[tick] = features
         multiStockLabels[tick] = labels
 
-    return multiStockFeatures, multiStockLabels
+    return multiStockFeatures, multiStockLabels, selectrows
 
 
 def train_test_split(features, labels, scaler, seq_len, n_features,
